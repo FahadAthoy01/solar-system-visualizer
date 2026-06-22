@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Solar System Visualizer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       LOADING SCREEN
+       Shown while textures/geometry are being constructed.
+  ============================================================= -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="orbit-spinner">
+        <div class="orbit-ring"></div>
+        <div class="orbit-dot"></div>
+      </div>
+      <p id="loading-text">Calibrating ephemeris&hellip;</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       3D CANVAS MOUNT POINT
+       Three.js renderer attaches its <canvas> inside this div.
+  ============================================================= -->
+  <div id="canvas-container"></div>
+
+  <!-- ============================================================
+       HEADER / TITLE BAR
+  ============================================================= -->
+  <header id="app-header">
+    <div class="header-left">
+      <span class="header-glyph">&#9737;</span>
+      <div class="header-text">
+        <h1>Solar System Visualizer</h1>
+        <p>Interactive orrery &mdash; relative scale model</p>
+      </div>
+    </div>
+    <button id="info-toggle" class="icon-button" aria-label="Toggle planet info panel" title="Planet data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="12" r="9"/>
+        <line x1="12" y1="11" x2="12" y2="16.5"/>
+        <circle cx="12" cy="7.5" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ============================================================
+       FLOATING CONTROL PANEL (bottom on mobile, side on desktop)
+  ============================================================= -->
+  <div id="control-panel">
+
+    <div class="control-group">
+      <label class="toggle-row" for="stars-toggle">
+        <span class="toggle-label">Show Moons</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="stars-toggle" checked />
+          <span class="toggle-slider"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="control-divider"></div>
+
+    <div class="control-group">
+      <label class="toggle-row" for="orbits-toggle">
+        <span class="toggle-label">Show Orbits</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="orbits-toggle" checked />
+          <span class="toggle-slider"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="control-group">
+      <label class="toggle-row" for="labels-toggle">
+        <span class="toggle-label">Show Labels</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="labels-toggle" checked />
+          <span class="toggle-slider"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="control-divider"></div>
+
+    <div class="control-group">
+      <div class="toggle-row">
+        <span class="toggle-label">Speed</span>
+        <span class="toggle-label" id="speed-value">1&times;</span>
+      </div>
+      <input type="range" id="speed-slider" min="0" max="20" step="0.1" value="1" class="range-input" />
+    </div>
+
+    <div class="control-divider"></div>
+
+    <div class="control-group button-row">
+      <button id="zoom-in" class="icon-button" aria-label="Zoom in" title="Zoom in">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="16.2" y1="16.2" x2="21" y2="21"/>
+          <line x1="11" y1="8" x2="11" y2="14"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
+      </button>
+      <button id="zoom-out" class="icon-button" aria-label="Zoom out" title="Zoom out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="16.2" y1="16.2" x2="21" y2="21"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
+      </button>
+      <button id="reset-view" class="icon-button" aria-label="Reset view" title="Reset view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 12a9 9 0 1 1 3 6.7"/>
+          <polyline points="3 8 3 12 7 12"/>
+        </svg>
+      </button>
+      <button id="pause-play" class="icon-button" aria-label="Pause animation" title="Pause">
+        <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="5" width="4" height="14" rx="1"/>
+          <rect x="14" y="5" width="4" height="14" rx="1"/>
+        </svg>
+        <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+          <polygon points="7,5 19,12 7,19"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PLANET FOCUS BAR
+       Quick-select chips to fly the camera to a given body.
+  ============================================================= -->
+  <nav id="focus-bar" aria-label="Jump to planet">
+    <button class="focus-chip" data-target="sun"><span class="chip-dot sun-dot"></span>Sun</button>
+    <button class="focus-chip" data-target="mercury"><span class="chip-dot" style="background:#9c9690"></span>Mercury</button>
+    <button class="focus-chip" data-target="venus"><span class="chip-dot" style="background:#e0c08a"></span>Venus</button>
+    <button class="focus-chip" data-target="earth"><span class="chip-dot" style="background:#4d8fdb"></span>Earth</button>
+    <button class="focus-chip" data-target="mars"><span class="chip-dot" style="background:#c1583a"></span>Mars</button>
+    <button class="focus-chip" data-target="jupiter"><span class="chip-dot" style="background:#d3a374"></span>Jupiter</button>
+    <button class="focus-chip" data-target="saturn"><span class="chip-dot" style="background:#e3c896"></span>Saturn</button>
+    <button class="focus-chip" data-target="uranus"><span class="chip-dot" style="background:#9fd6e0"></span>Uranus</button>
+    <button class="focus-chip" data-target="neptune"><span class="chip-dot" style="background:#4f6fd0"></span>Neptune</button>
+  </nav>
+
+  <!-- ============================================================
+       INFO PANEL (slides in, shows data for selected body)
+  ============================================================= -->
+  <aside id="info-panel" class="hidden">
+    <button id="info-close" class="icon-button" aria-label="Close info panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <line x1="5" y1="5" x2="19" y2="19"/>
+        <line x1="19" y1="5" x2="5" y2="19"/>
+      </svg>
+    </button>
+    <h2 id="info-name">Sun</h2>
+    <p id="info-type" class="info-type">Star</p>
+    <dl id="info-stats" class="info-stats"></dl>
+  </aside>
+
+  <!-- Bottom-left hint, fades after first interaction -->
+  <div id="hint-bar">Drag to orbit &middot; Scroll / pinch to zoom &middot; Right-drag to pan &middot; Tap a planet to inspect</div>
+
+  <!-- ============================================================
+       THREE.JS (pinned version via CDN, with OrbitControls addon)
+  ============================================================= -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
